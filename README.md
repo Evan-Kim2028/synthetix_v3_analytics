@@ -14,3 +14,5 @@ source .venv/bin/activate
 Install from github source:
 
 `pip install git+https://github.com/Evan-Kim2028/synthetix_v3_analytics.git`
+
+Then make a .env file and replace subgraph_endpoint with a valid base perps v3 endpoint `ENDPOINT="my_subgraph_endpoint"`
