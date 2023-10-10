@@ -15,10 +15,10 @@ class BasePerps:
     subgraph = sg.load_subgraph(url=os.getenv("ENDPOINT"))
 
     def get_settled_orders(
-        self, timestamp: int = 1696344937, limit: int = 2500
+        self, timestamp: int = 1696170189, limit: int = 2500
     ) -> pd.DataFrame:
         """
-        timestamp: int = 1696344937   # October 3, 10:55 AM
+        timestamp: int = 1696170189   # October 1, 2 PM
 
         get settled orders. Merge with markets to get market names.
 
