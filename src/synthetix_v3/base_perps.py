@@ -18,9 +18,9 @@ class BasePerps:
         self, timestamp: int = 1696170189, limit: int = 2500
     ) -> pd.DataFrame:
         """
-        timestamp: int = 1696170189   # October 1, 2 PM
+        timestamp: int = 1696170189   # October 1, 2023, 2 PM
 
-        get settled orders. Merge with markets to get market names.
+        get settled orders. The timestamp parameter retrieves orders that are past the timestamp date. Merge with markets to get market names.
 
         Returns a dataframe with these columns:
 
