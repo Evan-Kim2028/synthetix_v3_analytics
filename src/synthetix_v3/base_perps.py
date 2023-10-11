@@ -158,3 +158,49 @@ class BasePerps:
         )
 
         return market_updates_df.merge(markets_df, on="markets_id", how="left")
+
+    def get_position_liquidations(self, limit: int = 5000) -> pd.DataFrame:
+        """
+        get position liquidations. Example dataframe output:
+
+        positionLiquidateds_id                     object
+        positionLiquidateds_timestamp               int64
+        positionLiquidateds_accountId              object
+        markets_id                                  int64
+        positionLiquidateds_amountLiquidated       object
+        positionLiquidateds_currentPositionSize    object
+        markets_marketSymbol                       object
+        """
+        positions_liquidated = self.subgraph.Query._select("positionLiquidateds")(
+            first=limit, orderBy="timestamp", orderDirection="desc"
+        )
+
+        position_liquidation_df = self.sg.query_df([positions_liquidated])
+
+        markets_df = self.get_markets()[["markets_marketSymbol", "markets_id"]]
+        markets_df = markets_df.astype({"markets_id": "int64"})
+
+        # rename cols for merge
+        position_liquidation_df = position_liquidation_df.rename(
+            columns={"positionLiquidateds_marketId": "markets_id"}
+        )
+
+        return position_liquidation_df.merge(markets_df, on="markets_id", how="left")
+
+    def get_account_liquidations(self, limit: int = 5000) -> pd.DataFrame:
+        """
+        get account liquidations. Example dataframe output:
+
+        accountLiquidateds_id                   object
+        accountLiquidateds_timestamp             int64
+        accountLiquidateds_accountId            object
+        accountLiquidateds_liquidationReward    object
+        accountLiquidateds_fullyLiquidated        bool
+        """
+        accounts_liquidated = self.subgraph.Query._select("accountLiquidateds")(
+            first=limit, orderBy="timestamp", orderDirection="desc"
+        )
+
+        account_liquidation_df = self.sg.query_df([accounts_liquidated])
+
+        return account_liquidation_df
