@@ -1,5 +1,4 @@
 import os
-import polars as pl
 import pandas as pd
 
 from dataclasses import dataclass
@@ -20,7 +19,8 @@ class BasePerps:
         """
         timestamp: int = 1696170189   # October 1, 2023, 2 PM
 
-        get settled orders. The timestamp parameter retrieves orders that are past the timestamp date. Merge with markets to get market names.
+        get settled orders. `timestamp` retrieves orders that are
+        past the timestamp date. Merge with markets to get market names.
 
         Returns a dataframe with these columns:
 
@@ -108,6 +108,7 @@ class BasePerps:
     def get_market_updates(self, limit: int = 5000) -> pd.DataFrame:
         """
         Get historical market stats.
+        Converts pandas objects to floats to avoid int overflow type errors.
 
         Returns a pandas dataframe with these columns:
             marketUpdateds_timestamp                   int64
@@ -161,14 +162,15 @@ class BasePerps:
 
     def get_position_liquidations(self, limit: int = 5000) -> pd.DataFrame:
         """
-        get position liquidations. Example dataframe output:
+        get position liquidations. Forces float type cols.
+        Example dataframe output:
 
         positionLiquidateds_id                     object
         positionLiquidateds_timestamp               int64
-        positionLiquidateds_accountId              object
+        positionLiquidateds_accountId              float64
         markets_id                                  int64
-        positionLiquidateds_amountLiquidated       object
-        positionLiquidateds_currentPositionSize    object
+        positionLiquidateds_amountLiquidated       float64
+        positionLiquidateds_currentPositionSize    float64
         markets_marketSymbol                       object
         """
         positions_liquidated = self.subgraph.Query._select("positionLiquidateds")(
@@ -177,12 +179,27 @@ class BasePerps:
 
         position_liquidation_df = self.sg.query_df([positions_liquidated])
 
-        markets_df = self.get_markets()[["markets_marketSymbol", "markets_id"]]
-        markets_df = markets_df.astype({"markets_id": "int64"})
+        markets_df = self.get_markets()[["markets_marketSymbol", "markets_id"]].astype(
+            {"markets_id": "int64"}
+        )
 
         # rename cols for merge
         position_liquidation_df = position_liquidation_df.rename(
             columns={"positionLiquidateds_marketId": "markets_id"}
+        )
+        # force numerics
+        position_liquidation_df[
+            "positionLiquidateds_accountId"
+        ] = position_liquidation_df["positionLiquidateds_accountId"].astype(float)
+        position_liquidation_df[
+            "positionLiquidateds_amountLiquidated"
+        ] = position_liquidation_df["positionLiquidateds_amountLiquidated"].astype(
+            float
+        )
+        position_liquidation_df[
+            "positionLiquidateds_currentPositionSize"
+        ] = position_liquidation_df["positionLiquidateds_currentPositionSize"].astype(
+            float
         )
 
         return position_liquidation_df.merge(markets_df, on="markets_id", how="left")
