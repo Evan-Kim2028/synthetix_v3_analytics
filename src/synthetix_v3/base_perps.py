@@ -221,3 +221,10 @@ class BasePerps:
         account_liquidation_df = self.sg.query_df([accounts_liquidated])
 
         return account_liquidation_df
+
+    def _download(self, df: pd.DataFrame, name: str) -> None:
+        """
+        download dataframe to csv
+        """
+        df.to_csv(f"{name}.csv", index=False)
+        print(f"downloaded {name}.csv")
