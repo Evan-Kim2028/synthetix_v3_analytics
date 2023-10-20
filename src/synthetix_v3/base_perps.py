@@ -11,7 +11,7 @@ class BasePerps:
     load_dotenv()
 
     sg = Subgrounds()
-    subgraph = sg.load_subgraph(url=os.getenv("ENDPOINT"))
+    subgraph = sg.load_subgraph(url=os.getenv("PERPS_MARKET_BASE_TESTNET"))
 
     def get_settled_orders(
         self, timestamp: int = 1696170189, limit: int = 2500
