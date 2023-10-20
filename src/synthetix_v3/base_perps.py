@@ -7,7 +7,7 @@ from subgrounds import Subgrounds
 
 
 @dataclass
-class BasePerps:
+class TestBasePerps:
     load_dotenv()
 
     sg = Subgrounds()

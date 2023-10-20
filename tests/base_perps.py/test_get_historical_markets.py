@@ -1,7 +1,6 @@
-from synthetix_v3.base_perps import BasePerps
-import polars as pl
+from synthetix_v3.base_perps import TestBasePerps
 
-base_perp = BasePerps()
+base_perp = TestBasePerps()
 
 market_updates_df = base_perp.get_market_updates()
 

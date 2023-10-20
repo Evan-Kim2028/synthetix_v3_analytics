@@ -1,7 +1,7 @@
-from synthetix_v3.base_perps import BasePerps
+from synthetix_v3.base_perps import TestBasePerps
 
 
-base_perp = BasePerps()
+base_perp = TestBasePerps()
 
 df = base_perp.get_account_liquidations()
 
