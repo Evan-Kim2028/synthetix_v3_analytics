@@ -1,4 +1,5 @@
 import os
+import polars as pl
 import pandas as pd
 
 from dataclasses import dataclass
@@ -14,13 +15,11 @@ class TestBasePerps:
     subgraph = sg.load_subgraph(url=os.getenv("PERPS_MARKET_BASE_TESTNET"))
 
     def get_settled_orders(
-        self, timestamp: int = 1696170189, limit: int = 2500
+        self, start_block: int = None, end_block: int = None, limit: int = 2500
     ) -> pd.DataFrame:
         """
-        timestamp: int = 1696170189   # October 1, 2023, 2 PM
 
-        get settled orders. `timestamp` retrieves orders that are
-        past the timestamp date. Merge with markets to get market names.
+        get settled orders. Merge with markets to get market names and returns combined dataframe
 
         Returns a dataframe with these columns:
 
@@ -40,9 +39,27 @@ class TestBasePerps:
             orderSettleds_settler              object
             markets_marketSymbol               object
         """
-        orders = self.subgraph.Query.orderSettleds(
-            first=limit, where=[self.subgraph.OrderSettled.timestamp > timestamp]
-        )
+
+        match (start_block, end_block):
+            case (None, None):
+                orders = self.subgraph.Query.orderSettleds(first=limit)
+
+            case (None, end_block) if end_block is not None:
+                orders = self.subgraph.Query.orderSettleds(
+                    first=limit, block={"number": end_block}
+                )
+
+            case (start_block, None) if start_block is not None:
+                orders = self.subgraph.Query.orderSettleds(
+                    first=limit, where={"_change_block": {"number_gte": start_block}}
+                )
+
+            case (start_block, end_block):
+                orders = self.subgraph.Query.orderSettleds(
+                    first=limit,
+                    block={"number": end_block},
+                    where={"_change_block": {"number_gte": start_block}},
+                )
 
         # query subgraph
         orders_df = self.sg.query_df(orders)
@@ -221,10 +238,3 @@ class TestBasePerps:
         account_liquidation_df = self.sg.query_df([accounts_liquidated])
 
         return account_liquidation_df
-
-    def _download(self, df: pd.DataFrame, name: str) -> None:
-        """
-        download dataframe to csv
-        """
-        df.to_csv(f"{name}.csv", index=False)
-        print(f"downloaded {name}.csv")
