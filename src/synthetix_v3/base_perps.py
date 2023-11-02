@@ -26,7 +26,7 @@ class TestBasePerps:
             orderSettleds_id                   object
             orderSettleds_timestamp             int64
             markets_id                          int64
-            orderSettleds_accountId           float64
+            orderSettleds_accountId           str
             orderSettleds_fillPrice           float64
             orderSettleds_accruedFunding      float64
             orderSettleds_sizeDelta           float64
@@ -69,7 +69,7 @@ class TestBasePerps:
         markets_df = markets_df.astype({"markets_id": "int64"})
         orders_df = orders_df.astype(
             {
-                "orderSettleds_accountId": "float",
+                "orderSettleds_accountId": "str",
                 "orderSettleds_fillPrice": "float",
                 "orderSettleds_accruedFunding": "float",
                 "orderSettleds_sizeDelta": "float",
@@ -177,22 +177,51 @@ class TestBasePerps:
 
         return market_updates_df.merge(markets_df, on="markets_id", how="left")
 
-    def get_position_liquidations(self, limit: int = 5000) -> pd.DataFrame:
+    def get_position_liquidations(
+        self, start_block: int = None, end_block: int = None, limit: int = 5000
+    ) -> pd.DataFrame:
         """
         get position liquidations. Forces float type cols.
         Example dataframe output:
 
         positionLiquidateds_id                     object
         positionLiquidateds_timestamp               int64
-        positionLiquidateds_accountId              float64
+        positionLiquidateds_accountId              str
         markets_id                                  int64
         positionLiquidateds_amountLiquidated       float64
         positionLiquidateds_currentPositionSize    float64
         markets_marketSymbol                       object
         """
-        positions_liquidated = self.subgraph.Query._select("positionLiquidateds")(
-            first=limit, orderBy="timestamp", orderDirection="desc"
-        )
+        match (start_block, end_block):
+            case (None, None):
+                positions_liquidated = self.subgraph.Query.positionLiquidateds(
+                    first=limit
+                )
+
+            case (None, end_block) if end_block is not None:
+                positions_liquidated = self.subgraph.Query.positionLiquidateds(
+                    first=limit,
+                    block={"number": end_block},
+                    orderBy="timestamp",
+                    orderDirection="desc",
+                )
+
+            case (start_block, None) if start_block is not None:
+                positions_liquidated = self.subgraph.Query.positionLiquidateds(
+                    first=limit,
+                    where={"_change_block": {"number_gte": start_block}},
+                    orderBy="timestamp",
+                    orderDirection="desc",
+                )
+
+            case (start_block, end_block):
+                positions_liquidated = self.subgraph.Query.positionLiquidateds(
+                    first=limit,
+                    block={"number": end_block},
+                    where={"_change_block": {"number_gte": start_block}},
+                    orderBy="timestamp",
+                    orderDirection="desc",
+                )
 
         position_liquidation_df = self.sg.query_df([positions_liquidated])
 
@@ -207,7 +236,7 @@ class TestBasePerps:
         # force numerics
         position_liquidation_df[
             "positionLiquidateds_accountId"
-        ] = position_liquidation_df["positionLiquidateds_accountId"].astype(float)
+        ] = position_liquidation_df["positionLiquidateds_accountId"].astype(str)
         position_liquidation_df[
             "positionLiquidateds_amountLiquidated"
         ] = position_liquidation_df["positionLiquidateds_amountLiquidated"].astype(
@@ -227,7 +256,7 @@ class TestBasePerps:
 
         accountLiquidateds_id                   object
         accountLiquidateds_timestamp             int64
-        accountLiquidateds_accountId            object
+        accountLiquidateds_accountId            str
         accountLiquidateds_liquidationReward    object
         accountLiquidateds_fullyLiquidated        bool
         """
