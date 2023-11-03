@@ -14,6 +14,21 @@ class TestBasePerps:
     sg = Subgrounds()
     subgraph = sg.load_subgraph(url=os.getenv("PERPS_MARKET_BASE_TESTNET"))
 
+    def get_accounts(self, limit=5000) -> pd.DataFrame:
+        """
+        get account schema information
+        """
+        accounts = self.subgraph.Query._select("accounts")(first=limit)
+
+        accounts_df = self.sg.query_df([accounts])
+        accounts_df = accounts_df.astype(
+            {
+                "accounts_owner": "str",
+                "accounts_accountId": "str",
+            }
+        )
+        return accounts_df
+
     def get_settled_orders(
         self, start_block: int = None, end_block: int = None, limit: int = 2500
     ) -> pd.DataFrame:
@@ -62,7 +77,21 @@ class TestBasePerps:
                 )
 
         # query subgraph
-        orders_df = self.sg.query_df(orders)
+        orders_df = self.sg.query_df(
+            [
+                orders.accountId,
+                orders.timestamp,
+                orders.marketId,
+                orders.fillPrice,
+                orders.accruedFunding,
+                orders.sizeDelta,
+                orders.newSize,
+                orders.totalFees,
+                orders.referralFees,
+                orders.collectedFees,
+                orders.settlementReward,
+            ]
+        )
         markets_df = self.get_markets()[["markets_marketSymbol", "markets_id"]]
 
         # force numeric datatypes
@@ -223,7 +252,16 @@ class TestBasePerps:
                     orderDirection="desc",
                 )
 
-        position_liquidation_df = self.sg.query_df([positions_liquidated])
+        position_liquidation_df = self.sg.query_df(
+            [
+                positions_liquidated._select("id"),
+                positions_liquidated.timestamp,
+                positions_liquidated.accountId,
+                positions_liquidated.marketId,
+                positions_liquidated.amountLiquidated,
+                positions_liquidated.currentPositionSize,
+            ]
+        )
 
         markets_df = self.get_markets()[["markets_marketSymbol", "markets_id"]].astype(
             {"markets_id": "int64"}
@@ -233,7 +271,7 @@ class TestBasePerps:
         position_liquidation_df = position_liquidation_df.rename(
             columns={"positionLiquidateds_marketId": "markets_id"}
         )
-        # force numerics
+        # force datatypes
         position_liquidation_df[
             "positionLiquidateds_accountId"
         ] = position_liquidation_df["positionLiquidateds_accountId"].astype(str)
