@@ -151,7 +151,9 @@ class TestBasePerps:
 
         return self.sg.query_df(self.subgraph.Query.markets)
 
-    def get_market_updates(self, limit: int = 5000) -> pd.DataFrame:
+    def get_market_updates(
+        self, start_block: int, end_block: int, limit: int = 5000
+    ) -> pd.DataFrame:
         """
         Get historical market stats.
         Converts pandas objects to floats to avoid int overflow type errors.
@@ -167,9 +169,29 @@ class TestBasePerps:
             marketUpdateds_currentFundingVelocity    float64
             markets_marketSymbol                      object
         """
-        market_updates = self.subgraph.Query._select("marketUpdateds")(
-            first=limit, orderBy="timestamp", orderDirection="desc"
-        )
+
+        match (start_block, end_block):
+            case (None, None):
+                market_updates = self.subgraph.Query._select("marketUpdateds")(
+                    first=limit
+                )
+
+            case (None, end_block) if end_block is not None:
+                market_updates = self.subgraph.Query._select("marketUpdateds")(
+                    first=limit, block={"number": end_block}
+                )
+
+            case (start_block, None) if start_block is not None:
+                market_updates = self.subgraph.Query._select("marketUpdateds")(
+                    first=limit, where={"_change_block": {"number_gte": start_block}}
+                )
+
+            case (start_block, end_block):
+                market_updates = self.subgraph.Query._select("marketUpdateds")(
+                    first=limit,
+                    block={"number": end_block},
+                    where={"_change_block": {"number_gte": start_block}},
+                )
 
         # query subgraph
         market_updates_df = self.sg.query_df(
